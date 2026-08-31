@@ -8,45 +8,65 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function checkUser() {
+    let mounted = true;
+
+    const checkUser = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        setEmail(session.user.email ?? "");
-      } else {
+      if (!mounted) return;
+
+      if (!session) {
         router.replace("/admin");
+        return;
       }
-    }
+
+      setEmail(session.user.email || "");
+      setLoading(false);
+    };
 
     checkUser();
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
-  async function logout() {
+  const logout = async () => {
     await supabase.auth.signOut();
     router.replace("/admin");
-  }
+  };
 
-  function goTo(path: string) {
-    router.push(path);
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#0d0d0c] text-white">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-[#d8bd73]" />
+
+          <p className="mt-5 text-xs uppercase tracking-[0.3em] text-[#d8bd73]">
+            Checking Access
+          </p>
+        </div>
+      </main>
+    );
   }
 
   return (
     <main className="min-h-screen bg-[#0d0d0c] text-white">
       <div className="flex min-h-screen">
 
-        {/* Sidebar */}
-        <aside className="hidden w-64 border-r border-white/10 bg-[#111110] p-6 lg:block">
+        <aside className="hidden w-64 shrink-0 border-r border-white/10 bg-[#111110] p-6 lg:block">
 
           <div>
             <p className="text-[10px] uppercase tracking-[0.4em] text-[#d8bd73]">
               Administration
             </p>
 
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight">
+            <h1 className="mt-3 text-2xl font-semibold">
               MAKHAN
             </h1>
 
@@ -57,70 +77,68 @@ export default function AdminDashboard() {
 
           <nav className="mt-12 space-y-2">
 
-            {/* Dashboard */}
             <button
-              onClick={() => goTo("/admin/dashboard")}
-              className="w-full rounded-xl bg-white/10 px-4 py-3 text-left text-sm transition hover:bg-white/15"
+              type="button"
+              onClick={() => router.push("/admin/dashboard")}
+              className="w-full rounded-xl bg-white/10 px-4 py-3 text-left text-sm"
             >
               Dashboard
             </button>
 
-            {/* Products */}
             <button
-  onClick={() => (window.location.href = "/admin/products")}
-  className="w-full rounded-xl px-4 py-3 text-left text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
->
-  Products
-</button>
+              type="button"
+              onClick={() => router.push("/admin/products")}
+              className="w-full rounded-xl px-4 py-3 text-left text-sm text-white/50 hover:bg-white/5 hover:text-white"
+            >
+              Products
+            </button>
 
-            {/* Orders */}
             <button
-              onClick={() => goTo("/admin/orders")}
-              className="w-full rounded-xl px-4 py-3 text-left text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
+              type="button"
+              onClick={() => router.push("/admin/orders")}
+              className="w-full rounded-xl px-4 py-3 text-left text-sm text-white/50 hover:bg-white/5 hover:text-white"
             >
               Orders
             </button>
 
-            {/* Customer Support */}
             <button
-              onClick={() => goTo("/admin/support")}
-              className="w-full rounded-xl px-4 py-3 text-left text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
+              type="button"
+              onClick={() => router.push("/admin/support")}
+              className="w-full rounded-xl px-4 py-3 text-left text-sm text-white/50 hover:bg-white/5 hover:text-white"
             >
               Customer Support
             </button>
 
-            {/* Social Media */}
             <button
-              onClick={() => goTo("/admin/social")}
-              className="w-full rounded-xl px-4 py-3 text-left text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
+              type="button"
+              onClick={() => router.push("/admin/social")}
+              className="w-full rounded-xl px-4 py-3 text-left text-sm text-white/50 hover:bg-white/5 hover:text-white"
             >
               Social Media
             </button>
 
-            {/* Settings */}
             <button
-              onClick={() => goTo("/admin/settings")}
-              className="w-full rounded-xl px-4 py-3 text-left text-sm text-white/50 transition hover:bg-white/5 hover:text-white"
+              type="button"
+              onClick={() => router.push("/admin/settings")}
+              className="w-full rounded-xl px-4 py-3 text-left text-sm text-white/50 hover:bg-white/5 hover:text-white"
             >
               Store Settings
             </button>
 
           </nav>
 
-          {/* Sign Out */}
           <button
+            type="button"
             onClick={logout}
-            className="mt-12 w-full rounded-xl border border-white/10 px-4 py-3 text-left text-sm text-white/50 transition hover:border-red-400/30 hover:text-red-300"
+            className="mt-12 w-full rounded-xl border border-white/10 px-4 py-3 text-left text-sm text-white/50 hover:border-red-400/30 hover:text-red-300"
           >
             Sign Out
           </button>
 
         </aside>
 
-        {/* Main */}
         <section className="flex-1">
 
-          {/* Top Bar */}
           <header className="flex items-center justify-between border-b border-white/10 px-6 py-5 lg:px-10">
 
             <div>
@@ -145,15 +163,14 @@ export default function AdminDashboard() {
 
           </header>
 
-          {/* Dashboard Content */}
           <div className="px-6 py-8 lg:px-10">
 
-            {/* Stats */}
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
               <button
-                onClick={() => goTo("/admin/products")}
-                className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left transition hover:border-[#d8bd73]/30 hover:bg-white/[0.07]"
+                type="button"
+                onClick={() => router.push("/admin/products")}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left hover:border-[#d8bd73]/30"
               >
                 <p className="text-xs text-white/40">
                   Products
@@ -169,8 +186,9 @@ export default function AdminDashboard() {
               </button>
 
               <button
-                onClick={() => goTo("/admin/orders")}
-                className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left transition hover:border-[#d8bd73]/30 hover:bg-white/[0.07]"
+                type="button"
+                onClick={() => router.push("/admin/orders")}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left hover:border-[#d8bd73]/30"
               >
                 <p className="text-xs text-white/40">
                   Orders
@@ -200,8 +218,9 @@ export default function AdminDashboard() {
               </div>
 
               <button
-                onClick={() => goTo("/admin/products")}
-                className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left transition hover:border-[#d8bd73]/30 hover:bg-white/[0.07]"
+                type="button"
+                onClick={() => router.push("/admin/products")}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left hover:border-[#d8bd73]/30"
               >
                 <p className="text-xs text-white/40">
                   Stock
@@ -218,7 +237,6 @@ export default function AdminDashboard() {
 
             </div>
 
-            {/* Management */}
             <div className="mt-10">
 
               <p className="text-xs uppercase tracking-[0.3em] text-[#d8bd73]">
@@ -231,14 +249,12 @@ export default function AdminDashboard() {
 
               <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
 
-                {/* Products */}
                 <button
-                  onClick={() => goTo("/admin/products")}
-                  className="group rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left transition hover:border-[#d8bd73]/30 hover:bg-white/[0.07]"
+                  type="button"
+                  onClick={() => router.push("/admin/products")}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left hover:border-[#d8bd73]/30"
                 >
-                  <p className="text-2xl">
-                    🧈
-                  </p>
+                  <p className="text-2xl">🧈</p>
 
                   <h4 className="mt-5 text-lg font-medium">
                     Products
@@ -254,14 +270,12 @@ export default function AdminDashboard() {
                   </p>
                 </button>
 
-                {/* Orders */}
                 <button
-                  onClick={() => goTo("/admin/orders")}
-                  className="group rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left transition hover:border-[#d8bd73]/30 hover:bg-white/[0.07]"
+                  type="button"
+                  onClick={() => router.push("/admin/orders")}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left hover:border-[#d8bd73]/30"
                 >
-                  <p className="text-2xl">
-                    📦
-                  </p>
+                  <p className="text-2xl">📦</p>
 
                   <h4 className="mt-5 text-lg font-medium">
                     Orders
@@ -277,14 +291,12 @@ export default function AdminDashboard() {
                   </p>
                 </button>
 
-                {/* Support */}
                 <button
-                  onClick={() => goTo("/admin/support")}
-                  className="group rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left transition hover:border-[#d8bd73]/30 hover:bg-white/[0.07]"
+                  type="button"
+                  onClick={() => router.push("/admin/support")}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left hover:border-[#d8bd73]/30"
                 >
-                  <p className="text-2xl">
-                    💬
-                  </p>
+                  <p className="text-2xl">💬</p>
 
                   <h4 className="mt-5 text-lg font-medium">
                     Customer Support
@@ -300,14 +312,12 @@ export default function AdminDashboard() {
                   </p>
                 </button>
 
-                {/* Social */}
                 <button
-                  onClick={() => goTo("/admin/social")}
-                  className="group rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left transition hover:border-[#d8bd73]/30 hover:bg-white/[0.07]"
+                  type="button"
+                  onClick={() => router.push("/admin/social")}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left hover:border-[#d8bd73]/30"
                 >
-                  <p className="text-2xl">
-                    📱
-                  </p>
+                  <p className="text-2xl">📱</p>
 
                   <h4 className="mt-5 text-lg font-medium">
                     Social Media
@@ -323,14 +333,12 @@ export default function AdminDashboard() {
                   </p>
                 </button>
 
-                {/* Settings */}
                 <button
-                  onClick={() => goTo("/admin/settings")}
-                  className="group rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left transition hover:border-[#d8bd73]/30 hover:bg-white/[0.07]"
+                  type="button"
+                  onClick={() => router.push("/admin/settings")}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-left hover:border-[#d8bd73]/30"
                 >
-                  <p className="text-2xl">
-                    ⚙️
-                  </p>
+                  <p className="text-2xl">⚙️</p>
 
                   <h4 className="mt-5 text-lg font-medium">
                     Store Settings
