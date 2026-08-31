@@ -26,10 +26,52 @@ type SocialSettings = {
   youtube: string;
 };
 
+type SupportSettings = {
+  phone: string;
+  whatsapp: string;
+  email: string;
+  message: string;
+};
+
+type StoreSettings = {
+  store_name: string;
+  tagline: string;
+  email: string;
+  phone: string;
+  whatsapp: string;
+  address: string;
+  city: string;
+  state: string;
+  pin_code: string;
+  shipping_information: string;
+  payment_method: string;
+};
+
 const defaultSocial: SocialSettings = {
   instagram: "",
   facebook: "",
   youtube: "",
+};
+
+const defaultSupport: SupportSettings = {
+  phone: "",
+  whatsapp: "",
+  email: "",
+  message: "",
+};
+
+const defaultStore: StoreSettings = {
+  store_name: "MAKHAN",
+  tagline: "Pure. Rich. Traditional.",
+  email: "",
+  phone: "",
+  whatsapp: "",
+  address: "",
+  city: "",
+  state: "",
+  pin_code: "",
+  shipping_information: "",
+  payment_method: "",
 };
 
 function makeUrl(url: string) {
@@ -39,14 +81,15 @@ function makeUrl(url: string) {
     return "";
   }
 
-  if (
-    clean.startsWith("http://") ||
-    clean.startsWith("https://")
-  ) {
+  if (clean.startsWith("http://") || clean.startsWith("https://")) {
     return clean;
   }
 
   return `https://${clean}`;
+}
+
+function cleanPhone(value: string) {
+  return value.replace(/\D/g, "");
 }
 
 export default function Home() {
@@ -61,11 +104,56 @@ export default function Home() {
   const [social, setSocial] =
     useState<SocialSettings>(defaultSocial);
 
+  const [support, setSupport] =
+    useState<SupportSettings>(defaultSupport);
+
+  const [store, setStore] =
+    useState<StoreSettings>(defaultStore);
+
   useEffect(() => {
     loadProduct();
     loadSocialSettings();
+    loadSupportSettings();
+    loadStoreSettings();
   }, []);
 
+ async function loadStoreSettings() {
+  const { data, error } = await supabase
+    .from("store_settings")
+    .select("*")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.log("STORE SETTINGS ERROR");
+    console.log(error);
+    console.log("MESSAGE:", error.message);
+    console.log("DETAILS:", error.details);
+    console.log("HINT:", error.hint);
+    console.log("CODE:", error.code);
+    return;
+  }
+
+  console.log("STORE SETTINGS DATA:", data);
+
+  if (data) {
+    setStore({
+      store_name: data.store_name ?? "MAKHAN",
+      tagline: data.tagline ?? "Pure. Rich. Traditional.",
+      email: data.email ?? "",
+      phone: data.phone ?? "",
+      whatsapp: data.whatsapp ?? "",
+      address: data.address ?? "",
+      city: data.city ?? "",
+      state: data.state ?? "",
+      pin_code: data.pin_code ?? "",
+      shipping_information:
+        data.shipping_information ?? "",
+      payment_method:
+        data.payment_method ?? "",
+    });
+  }
+}
   async function loadSocialSettings() {
     const { data, error } = await supabase
       .from("store_social")
@@ -87,20 +175,42 @@ export default function Home() {
     }
   }
 
+  async function loadSupportSettings() {
+    const { data, error } = await supabase
+      .from("store_support")
+      .select("phone, whatsapp, email, message")
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Support settings error:", error);
+      return;
+    }
+
+    if (data) {
+      setSupport({
+        phone: data.phone ?? "",
+        whatsapp: data.whatsapp ?? "",
+        email: data.email ?? "",
+        message: data.message ?? "",
+      });
+    }
+  }
+
   async function loadProduct() {
     setLoading(true);
 
-    const { data: products, error: productError } =
-      await supabase
-        .from("products")
-        .select(
-          "id, name, description, image_url, is_active"
-        )
-        .eq("is_active", true)
-        .order("created_at", {
-          ascending: true,
-        })
-        .limit(1);
+    const {
+      data: products,
+      error: productError,
+    } = await supabase
+      .from("products")
+      .select("id, name, description, image_url, is_active")
+      .eq("is_active", true)
+      .order("created_at", {
+        ascending: true,
+      })
+      .limit(1);
 
     if (
       productError ||
@@ -168,9 +278,7 @@ export default function Home() {
       return;
     }
 
-    if (
-      quantity < selectedVariant.stock
-    ) {
+    if (quantity < selectedVariant.stock) {
       setQuantity((current) => current + 1);
     }
   }
@@ -194,7 +302,7 @@ export default function Home() {
       image: product.image_url || "",
     };
 
-    let cart = [];
+    let cart: any[] = [];
 
     try {
       cart = JSON.parse(
@@ -307,17 +415,45 @@ export default function Home() {
     );
   }
 
-  const instagramUrl = makeUrl(
-    social.instagram
+  const instagramUrl =
+    makeUrl(social.instagram);
+
+  const facebookUrl =
+    makeUrl(social.facebook);
+
+  const youtubeUrl =
+    makeUrl(social.youtube);
+
+  const supportPhone =
+    support.phone.trim() ||
+    store.phone.trim();
+
+  const supportEmail =
+    support.email.trim() ||
+    store.email.trim();
+
+  const supportWhatsapp = cleanPhone(
+    support.whatsapp.trim() ||
+      store.whatsapp.trim()
   );
 
-  const facebookUrl = makeUrl(
-    social.facebook
-  );
+  const storeName =
+    store.store_name.trim() ||
+    "MAKHAN";
 
-  const youtubeUrl = makeUrl(
-    social.youtube
-  );
+  const tagline =
+    store.tagline.trim() ||
+    "Pure. Rich. Traditional.";
+
+  const fullAddress = [
+    store.address,
+    store.city,
+    store.state,
+    store.pin_code,
+  ]
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <main className="min-h-screen bg-[#faf9f6] text-[#1c1c1c]">
@@ -329,16 +465,15 @@ export default function Home() {
 
           <a href="/" className="block">
             <h1 className="text-2xl font-semibold tracking-tight">
-              MAKHAN
+              {storeName}
             </h1>
 
             <p className="text-[10px] uppercase tracking-[0.35em] text-black/50">
-              Pure. Rich. Traditional.
+              {tagline}
             </p>
           </a>
 
           <nav className="hidden items-center gap-8 text-sm md:flex">
-
             <a
               href="/"
               className="transition hover:opacity-50"
@@ -359,7 +494,6 @@ export default function Home() {
             >
               Our Story
             </a>
-
           </nav>
 
           <a
@@ -368,7 +502,6 @@ export default function Home() {
           >
             Cart
           </a>
-
         </div>
       </header>
 
@@ -377,7 +510,6 @@ export default function Home() {
       <section className="mx-auto grid min-h-[75vh] max-w-7xl items-center gap-12 px-6 py-16 md:grid-cols-2 md:py-24">
 
         <div>
-
           <p className="mb-5 text-xs font-medium uppercase tracking-[0.35em] text-black/50">
             Traditionally Crafted
           </p>
@@ -392,13 +524,13 @@ export default function Home() {
           </h2>
 
           <p className="mt-7 max-w-lg text-base leading-7 text-black/60">
-            Rich, creamy and made with care. Discover the simple
-            taste of premium traditional makhan, crafted for
-            everyday indulgence.
+            Rich, creamy and made with care.
+            Discover the simple taste of
+            premium traditional makhan,
+            crafted for everyday indulgence.
           </p>
 
           <div className="mt-9 flex flex-wrap gap-4">
-
             <a
               href="#product"
               className="rounded-full bg-black px-7 py-3.5 text-sm font-medium text-white transition hover:scale-[1.02]"
@@ -412,9 +544,7 @@ export default function Home() {
             >
               Our Story
             </a>
-
           </div>
-
         </div>
 
         <div className="relative flex min-h-[430px] items-center justify-center overflow-hidden rounded-[2rem] bg-[#eee9df]">
@@ -424,25 +554,21 @@ export default function Home() {
           <div className="relative flex h-72 w-72 items-center justify-center rounded-full border border-black/10 bg-[#f7f2e8] shadow-2xl">
 
             <div className="text-center">
-
               <p className="text-xs uppercase tracking-[0.3em] text-black/50">
                 Premium
               </p>
 
               <p className="mt-2 text-5xl font-semibold tracking-tight">
-                MAKHAN
+                {storeName}
               </p>
 
               <p className="mt-3 text-sm italic text-black/50">
-                Pure & Traditional
+                {tagline}
               </p>
-
             </div>
 
           </div>
-
         </div>
-
       </section>
 
       {/* ================= TRUST ================= */}
@@ -482,7 +608,6 @@ export default function Home() {
           </div>
 
         </div>
-
       </section>
 
       {/* ================= PRODUCT ================= */}
@@ -493,7 +618,6 @@ export default function Home() {
       >
 
         <div className="max-w-2xl">
-
           <p className="text-xs uppercase tracking-[0.35em] text-black/50">
             Our Signature Product
           </p>
@@ -506,7 +630,6 @@ export default function Home() {
             {product.description ||
               "Rich, creamy and traditionally inspired. Choose the pack size that works best for you."}
           </p>
-
         </div>
 
         <div className="mt-12 grid gap-10 md:grid-cols-2">
@@ -516,15 +639,12 @@ export default function Home() {
           <div className="flex min-h-[500px] items-center justify-center rounded-[2rem] bg-[#eee9df] p-8">
 
             {product.image_url ? (
-
               <img
                 src={product.image_url}
                 alt={product.name}
                 className="max-h-[460px] w-full object-contain"
               />
-
             ) : (
-
               <div className="rounded-3xl bg-[#f7f2e8] px-16 py-20 text-center shadow-xl">
 
                 <p className="text-xs uppercase tracking-[0.3em] text-black/50">
@@ -532,15 +652,14 @@ export default function Home() {
                 </p>
 
                 <h4 className="mt-3 text-4xl font-semibold tracking-tight">
-                  MAKHAN
+                  {storeName}
                 </h4>
 
                 <p className="mt-3 text-sm italic text-black/50">
-                  Pure & Traditional
+                  {tagline}
                 </p>
 
               </div>
-
             )}
 
           </div>
@@ -571,11 +690,9 @@ export default function Home() {
               </p>
 
               {variants.length > 0 ? (
-
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
 
                   {variants.map((variant) => {
-
                     const selected =
                       selectedVariant?.id === variant.id;
 
@@ -583,7 +700,6 @@ export default function Home() {
                       variant.stock <= 0;
 
                     return (
-
                       <button
                         key={variant.id}
                         type="button"
@@ -623,18 +739,14 @@ export default function Home() {
                         )}
 
                       </button>
-
                     );
                   })}
 
                 </div>
-
               ) : (
-
                 <div className="rounded-xl border border-black/10 bg-white px-5 py-4 text-sm text-black/50">
                   Pack sizes are currently unavailable.
                 </div>
-
               )}
 
             </div>
@@ -645,7 +757,8 @@ export default function Home() {
               <div className="mt-8">
 
                 <span className="text-3xl font-semibold">
-                  ₹{selectedVariant.price * quantity}
+                  ₹
+                  {selectedVariant.price * quantity}
                 </span>
 
                 <span className="ml-2 text-sm text-black/40">
@@ -661,7 +774,6 @@ export default function Home() {
 
             {selectedVariant &&
               selectedVariant.stock > 0 && (
-
                 <div className="mt-7 flex items-center gap-4">
 
                   <p className="text-sm font-medium">
@@ -702,7 +814,6 @@ export default function Home() {
                   </span>
 
                 </div>
-
               )}
 
             {/* ADD TO CART */}
@@ -778,9 +889,7 @@ export default function Home() {
             </div>
 
           </div>
-
         </div>
-
       </section>
 
       {/* ================= STORY ================= */}
@@ -803,13 +912,13 @@ export default function Home() {
           </h3>
 
           <p className="mx-auto mt-7 max-w-2xl leading-7 text-white/60">
-            We believe great food does not need to be complicated.
-            Our makhan is inspired by the timeless taste of
+            We believe great food does not need
+            to be complicated. Our makhan is
+            inspired by the timeless taste of
             traditional Indian kitchens.
           </p>
 
         </div>
-
       </section>
 
       {/* ================= SUPPORT + SOCIAL ================= */}
@@ -825,18 +934,25 @@ export default function Home() {
             <div>
 
               <h3 className="text-2xl font-semibold tracking-tight">
-                MAKHAN
+                {storeName}
               </h3>
 
               <p className="mt-2 text-[10px] uppercase tracking-[0.35em] text-black/40">
-                Pure. Rich. Traditional.
+                {tagline}
               </p>
 
               <p className="mt-6 max-w-sm text-sm leading-6 text-black/55">
-                Made with care, inspired by traditional taste and
-                created for people who appreciate simple, honest
-                goodness.
+                Made with care, inspired by
+                traditional taste and created for
+                people who appreciate simple,
+                honest goodness.
               </p>
+
+              {fullAddress && (
+                <p className="mt-5 max-w-sm text-sm leading-6 text-black/50">
+                  📍 {fullAddress}
+                </p>
+              )}
 
             </div>
 
@@ -853,37 +969,51 @@ export default function Home() {
               </h4>
 
               <p className="mt-3 text-sm leading-6 text-black/55">
-                Have a question about your order, delivery or
-                product? Our support team is here to help.
+                {support.message ||
+                  "Have a question about your order, delivery or product? Our support team is here to help."}
               </p>
 
               <div className="mt-6 space-y-3 text-sm">
 
-                <a
-                  href="tel:+919999999999"
-                  className="block transition hover:opacity-50"
-                >
-                  📞 +91 99999 99999
-                </a>
+                {supportPhone && (
+                  <a
+                    href={`tel:${supportPhone}`}
+                    className="block transition hover:opacity-50"
+                  >
+                    📞 {supportPhone}
+                  </a>
+                )}
 
-                <a
-                  href="mailto:support@example.com"
-                  className="block transition hover:opacity-50"
-                >
-                  ✉ support@example.com
-                </a>
+                {supportEmail && (
+                  <a
+                    href={`mailto:${supportEmail}`}
+                    className="block transition hover:opacity-50"
+                  >
+                    ✉ {supportEmail}
+                  </a>
+                )}
 
-                <a
-                  href="https://wa.me/919999999999"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block transition hover:opacity-50"
-                >
-                  💬 WhatsApp Support
-                </a>
+                {supportWhatsapp && (
+                  <a
+                    href={`https://wa.me/${supportWhatsapp}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block transition hover:opacity-50"
+                  >
+                    💬 WhatsApp Support
+                  </a>
+                )}
+
+                {!supportPhone &&
+                  !supportEmail &&
+                  !supportWhatsapp && (
+                    <p className="text-xs text-black/40">
+                      Customer support contact
+                      details will appear here.
+                    </p>
+                  )}
 
               </div>
-
             </div>
 
             {/* SOCIAL MEDIA */}
@@ -899,14 +1029,13 @@ export default function Home() {
               </h4>
 
               <p className="mt-3 text-sm leading-6 text-black/55">
-                Follow us for new updates, product stories and more.
+                Follow us for new updates,
+                product stories and more.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
 
-                {/* INSTAGRAM */}
-
-                {instagramUrl ? (
+                {instagramUrl && (
                   <a
                     href={instagramUrl}
                     target="_blank"
@@ -945,11 +1074,9 @@ export default function Home() {
                       />
                     </svg>
                   </a>
-                ) : null}
+                )}
 
-                {/* FACEBOOK */}
-
-                {facebookUrl ? (
+                {facebookUrl && (
                   <a
                     href={facebookUrl}
                     target="_blank"
@@ -959,11 +1086,9 @@ export default function Home() {
                   >
                     f
                   </a>
-                ) : null}
+                )}
 
-                {/* YOUTUBE */}
-
-                {youtubeUrl ? (
+                {youtubeUrl && (
                   <a
                     href={youtubeUrl}
                     target="_blank"
@@ -980,30 +1105,61 @@ export default function Home() {
                       <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.9V8.1l6.5 3.9-6.5 3.9Z" />
                     </svg>
                   </a>
-                ) : null}
-
-                {/* NO LINKS MESSAGE */}
+                )}
 
                 {!instagramUrl &&
                   !facebookUrl &&
                   !youtubeUrl && (
                     <p className="text-xs text-black/40">
-                      Social media links will appear here.
+                      Social media links will
+                      appear here.
                     </p>
                   )}
 
               </div>
+            </div>
+          </div>
+
+          {/* STORE INFORMATION */}
+
+          {(store.shipping_information ||
+            store.payment_method) && (
+            <div className="mt-14 grid gap-6 border-t border-black/10 pt-10 md:grid-cols-2">
+
+              {store.shipping_information && (
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.25em] text-black/40">
+                    Delivery
+                  </p>
+
+                  <p className="mt-3 text-sm leading-6 text-black/55">
+                    {store.shipping_information}
+                  </p>
+                </div>
+              )}
+
+              {store.payment_method && (
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.25em] text-black/40">
+                    Payment
+                  </p>
+
+                  <p className="mt-3 text-sm leading-6 text-black/55">
+                    {store.payment_method}
+                  </p>
+                </div>
+              )}
 
             </div>
-
-          </div>
+          )}
 
           {/* FOOTER */}
 
           <div className="mt-16 flex flex-col gap-4 border-t border-black/10 pt-7 text-xs text-black/40 sm:flex-row sm:items-center sm:justify-between">
 
             <p>
-              © 2026 MAKHAN. All rights reserved.
+              © 2026 {storeName}.
+              All rights reserved.
             </p>
 
             <div className="flex flex-wrap gap-6">
@@ -1034,7 +1190,6 @@ export default function Home() {
           </div>
 
         </div>
-
       </section>
 
     </main>
